@@ -116,7 +116,7 @@ class CssSubtitleRenderer(SubtitleRenderer):
         self._current_line_state = line_state
 
         script = f"""
-        ([text, cssClassesForLine, cssClassesForWords]) => {{
+        ([text, cssClassesForLine, cssClassesForWords, wordStates]) => {{
             const line = document.querySelector('.{RendererPage.DEFAULT_CSS_CLASS_FOR_EACH_LINE}');
             line.innerHTML = '';
             line.className = cssClassesForLine;
@@ -128,11 +128,30 @@ class CssSubtitleRenderer(SubtitleRenderer):
                 wordElement.className = cssClassesForWord;
                 line.appendChild(wordElement);
             }});
+            // Lock each word's size to the maximum across all word states so that
+            // style changes like font-weight:bold don't clip text or shift layout.
+            Array.from(line.children).forEach(w => {{
+                const baseRect = w.getBoundingClientRect();
+                let maxWidth = baseRect.width;
+                wordStates.forEach(state => {{
+                    w.classList.add(state);
+                    maxWidth = Math.max(maxWidth, w.getBoundingClientRect().width);
+                    w.classList.remove(state);
+                }});
+                const computed = window.getComputedStyle(w);
+                const contentHeight = baseRect.height - parseFloat(computed.paddingTop) - parseFloat(computed.paddingBottom);
+                w.style.boxSizing = 'border-box';
+                w.style.width = maxWidth + 'px';
+                w.style.height = baseRect.height + 'px';
+                w.style.textAlign = 'center';
+                w.style.lineHeight = contentHeight + 'px';
+            }});
         }}
         """
         line_css_classes = self._renderer_page.get_line_css_classes(line.get_segment().get_tags(), line.get_tags(), line_state)
         words_css_classes = [self._renderer_page.get_word_css_classes(word.get_tags(), index) for index, word in enumerate(line.words)]
-        self._page.evaluate(script, [line.get_text(), line_css_classes, words_css_classes])
+        word_states = [state.value for state in ElementState.get_all_word_states()]
+        self._page.evaluate(script, [line.get_text(), line_css_classes, words_css_classes, word_states])
    
     def render_word(self, index: int, word: Word, state: ElementState, first_n_letters: Optional[int] = None) -> Optional['Image']:
         if not self._page:

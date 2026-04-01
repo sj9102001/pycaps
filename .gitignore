@@ -15,3 +15,8 @@ TODO.md
 research
 .secrets
 .DS_Store
+.venv
+.github
+.claude
+out.mp4
+vid.mp4

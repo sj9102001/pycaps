@@ -31,7 +31,7 @@ class PositionsCalculator:
                         continue
                     self._set_clip_positions(line, words_width, y, video_width, state)
             else:
-                word_widths = [word.max_layout.size.width for word in line.words]
+                word_widths = [min(clip.layout.size.width for clip in word.clips) for word in line.words]
                 self._set_clip_positions(line, word_widths, y, video_width)
 
             y += line.max_layout.size.height + self._options.y_words_space

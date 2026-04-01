@@ -25,7 +25,7 @@ class CapsPipelineBuilder:
     
     def with_output_video(self, output_video_path: str) -> "CapsPipelineBuilder":
         if os.path.exists(output_video_path):
-            raise ValueError(f"Output video path already exists: {output_video_path}")
+            os.remove(output_video_path)
         self._caps_pipeline._output_video_path = output_video_path
         return self
 
